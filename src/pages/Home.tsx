@@ -1,16 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import FeatureCard from "@/components/FeatureCard";
-import { 
-  Shield, 
-  Code2, 
-  Zap, 
-  Lock, 
-  Rocket, 
-  ChevronRight, 
-  Users, 
+import {
+  Shield,
+  Code2,
+  Lock,
+  Rocket,
+  ChevronRight,
+  Users,
   BookOpen,
-  Layers
+  Layers,
+  Sparkles,
+  Cpu,
+  Lightbulb,
+  Monitor
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-encryption.jpg";
@@ -18,41 +21,40 @@ import heroImage from "@/assets/hero-encryption.jpg";
 const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-hero">
-      {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 to-background" />
-        <div 
+        <div
           className="absolute inset-0 opacity-10"
           style={{
             backgroundImage: `url(${heroImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         />
-        
+
         <div className="relative container mx-auto px-6 py-24 lg:py-32">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-4 py-2 mb-8">
+          <div className="max-w-4xl mx-auto text-center space-y-6">
+            <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-4 py-2">
               <Shield className="h-4 w-4 text-accent" />
-              <span className="text-sm text-accent font-medium">Confidential Computing Made Simple</span>
+              <span className="text-sm text-accent font-medium">Privacy on-chain, explained for humans</span>
             </div>
-            
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
-              Build Your First{" "}
-              <span className="bg-gradient-accent bg-clip-text text-transparent animate-glow">
-                Confidential dApp
+
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight">
+              Ship a Confidential dApp
+              <span className="block bg-gradient-accent bg-clip-text text-transparent animate-glow">
+                without touching heavy cryptography
               </span>
             </h1>
-            
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-              Learn FHEVM (Fully Homomorphic Encryption Virtual Machine) through a comprehensive, 
-              step-by-step tutorial. Build secure applications where computation happens on encrypted data.
+
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Zama’s FHEVM lets regular Solidity developers run computations on encrypted data. This tutorial breaks the
+              flow down into friendly steps—no advanced maths, just the tooling you already know.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                asChild 
-                size="lg" 
+              <Button
+                asChild
+                size="lg"
                 className="bg-gradient-primary hover:shadow-glow transition-all duration-300 text-lg px-8 py-6"
               >
                 <Link to="/tutorial" className="flex items-center gap-2">
@@ -61,16 +63,16 @@ const Home = () => {
                   <ChevronRight className="h-5 w-5" />
                 </Link>
               </Button>
-              
-              <Button 
-                asChild 
-                variant="outline" 
+
+              <Button
+                asChild
+                variant="outline"
                 size="lg"
                 className="border-primary/20 hover:border-primary hover:bg-primary/10 text-lg px-8 py-6"
               >
-                <a 
-                  href="https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial" 
-                  target="_blank" 
+                <a
+                  href="https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
                 >
@@ -83,107 +85,86 @@ const Home = () => {
         </div>
       </section>
 
-      {/* What is FHEVM Section */}
       <section className="py-20 bg-background/50">
         <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-              What is FHEVM?
-            </h2>
+          <div className="max-w-4xl mx-auto text-center mb-16 space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground">Zama in Plain Words</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              FHEVM (Fully Homomorphic Encryption Virtual Machine) is Zama's groundbreaking technology 
-              that enables smart contracts to perform computations on encrypted data without ever 
-              decrypting it. This means you can build applications that are private by design.
+              Zama builds the Fully Homomorphic Encryption Virtual Machine (FHEVM)—an EVM where you can keep inputs,
+              state, and outputs encrypted end to end. Think of it as privacy mode for smart contracts.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             <FeatureCard
               icon={<Lock className="h-6 w-6" />}
-              title="Privacy-First"
-              description="Compute on encrypted data without revealing sensitive information. Your data stays private throughout the entire process."
+              title="Data Stays Secret"
+              description="Numbers and booleans are stored as ciphertext. Validators execute functions without learning the underlying values."
               accent
             />
             <FeatureCard
-              icon={<Zap className="h-6 w-6" />}
-              title="No Compromise"
-              description="Get full computational power while maintaining privacy. No trade-offs between security and functionality."
+              icon={<Cpu className="h-6 w-6" />}
+              title="Works Like Solidity"
+              description="Use familiar contracts, events, and tooling. FHEVM exposes encrypted types that behave like their uint and bool cousins."
             />
             <FeatureCard
-              icon={<Code2 className="h-6 w-6" />}
-              title="Developer Friendly"
-              description="Use familiar Solidity syntax with built-in encryption types. Easy to learn, powerful to use."
+              icon={<Sparkles className="h-6 w-6" />}
+              title="Ready for Builders"
+              description="Hardhat, React, wagmi—everything fits. The tutorial shows exactly where FHE-specific bits slot into your workflow."
             />
           </div>
 
-          <Card className="bg-gradient-card border-card-border overflow-hidden max-w-4xl mx-auto">
-            <CardContent className="p-8">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                <div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4">
-                    Why Choose FHEVM?
-                  </h3>
-                  <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-start gap-3">
-                      <Shield className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
-                      <span>Complete privacy for sensitive data and computations</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <Layers className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
-                      <span>Seamless integration with existing Ethereum infrastructure</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <Users className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
-                      <span>Growing ecosystem of privacy-focused applications</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="relative">
-                  <div className="bg-code-bg border border-code-border rounded-lg p-4">
-                    <div className="text-sm font-mono text-foreground">
-                      <div className="text-accent">// Encrypted computation</div>
-                      <div className="text-muted-foreground">euint32 result = encryptedA</div>
-                      <div className="text-muted-foreground ml-4">.add(encryptedB);</div>
-                      <div className="text-accent mt-2">// Data stays private!</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid md:grid-cols-3 gap-6">
+            {privacyStages.map((stage, index) => (
+              <Card key={stage.title} className="bg-gradient-card border-card-border">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-semibold">
+                      {index + 1}
+                    </span>
+                    {stage.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-2">
+                  <p>{stage.description}</p>
+                  <p className="text-xs uppercase tracking-wide text-primary">{stage.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Tutorial Overview */}
       <section className="py-20">
         <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-              What You'll Learn
-            </h2>
+          <div className="max-w-4xl mx-auto text-center mb-16 space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground">What You Will Build</h2>
             <p className="text-lg text-muted-foreground">
-              Our comprehensive tutorial takes you from Solidity basics to deploying 
-              your first confidential application on FHEVM.
+              A confidential counter dApp: Solidity contract, Hardhat deployment, and a React dashboard that encrypts inputs
+              and decrypts responses right in the browser.
             </p>
           </div>
 
           <div className="grid gap-6 max-w-4xl mx-auto">
             {tutorialSteps.map((step, index) => (
-              <Card 
-                key={index}
+              <Card
+                key={step.title}
                 className="bg-gradient-card border-card-border hover:border-primary/30 transition-all duration-300 hover:shadow-card"
               >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 border border-primary/20 rounded-full w-8 h-8 flex items-center justify-center text-primary font-semibold text-sm">
+                    <div className="bg-primary/10 border border-primary/20 rounded-full w-10 h-10 flex items-center justify-center text-primary font-semibold text-base">
                       {index + 1}
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-2">{step.title}</h3>
+                    <div className="flex-1 space-y-1">
+                      <h3 className="font-semibold text-foreground flex items-center gap-2">
+                        {step.icon}
+                        {step.title}
+                      </h3>
                       <p className="text-muted-foreground text-sm">{step.description}</p>
                     </div>
-                    <div className="text-muted-foreground">
-                      {step.icon}
+                    <div className="text-muted-foreground hidden sm:block">
+                      <ChevronRight className="h-5 w-5" />
                     </div>
                   </div>
                 </CardContent>
@@ -191,9 +172,41 @@ const Home = () => {
             ))}
           </div>
 
+          <div className="grid gap-4 md:grid-cols-2 mt-16">
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Built for Web3 Developers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p>You only need basic Solidity and React skills. Every cryptography concept is introduced in plain language.</p>
+                <p>Follow along at your own pace, copy snippets directly, and rerun the provided tests after each change.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-accent/20 bg-accent/5">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-accent" />
+                  Prerequisites Checklist
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Node.js 18+ and npm</li>
+                  <li>Hardhat familiarity (compile, deploy, run tests)</li>
+                  <li>Browser wallet such as MetaMask</li>
+                  <li>Optional: a funded account on Zama Devnet for live testing</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="text-center mt-16">
-            <Button 
-              asChild 
+            <Button
+              asChild
               size="lg"
               className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
             >
@@ -209,37 +222,55 @@ const Home = () => {
   );
 };
 
+const privacyStages = [
+  {
+    title: "Encrypt on the client",
+    description: "Inputs are scrambled in the browser using fhevmjs before they touch the blockchain.",
+    label: "Frontend",
+  },
+  {
+    title: "Compute without peeking",
+    description: "Contracts call TFHE helpers to add, compare, or reset values while everything stays encrypted.",
+    label: "On-chain",
+  },
+  {
+    title: "Decrypt with consent",
+    description: "Users request a re-encrypted snapshot, sign a typed message, and decrypt the result locally.",
+    label: "Frontend",
+  },
+];
+
 const tutorialSteps = [
   {
-    title: "Plain Solidity Contract",
-    description: "Start with a simple smart contract using regular Solidity syntax and understand the basics.",
-    icon: <Code2 className="h-5 w-5" />
+    title: "Understand the baseline",
+    description: "Start with a plain counter contract and tests so you know exactly what changes when FHE enters the chat.",
+    icon: <Code2 className="h-5 w-5" />,
   },
   {
-    title: "Convert to FHEVM",
-    description: "Transform your contract to use encrypted types and learn about confidential computing.",
-    icon: <Lock className="h-5 w-5" />
+    title: "Upgrade to encrypted types",
+    description: "Replace uints with euints, add encrypted math, and keep events intact for UI feedback.",
+    icon: <Lock className="h-5 w-5" />,
   },
   {
-    title: "Hardhat Setup",
-    description: "Configure your development environment with Hardhat for FHEVM compilation and deployment.",
-    icon: <Layers className="h-5 w-5" />
+    title: "Deploy with Hardhat",
+    description: "Configure the FHEVM compiler target, manage secrets, and push to Zama Devnet.",
+    icon: <Layers className="h-5 w-5" />,
   },
   {
-    title: "React Frontend",
-    description: "Build a clean, modern React application to interact with your smart contract.",
-    icon: <Shield className="h-5 w-5" />
+    title: "Build a React dashboard",
+    description: "Create a clean Vite + Tailwind interface and helper utilities for encryption and decryption.",
+    icon: <Monitor className="h-5 w-5" />,
   },
   {
-    title: "Wallet Integration",
-    description: "Connect wallets using wagmi and enable users to interact with your dApp seamlessly.",
-    icon: <Users className="h-5 w-5" />
+    title: "Connect wallets with Wagmi",
+    description: "Guide users through encryption-aware reads and writes using the wagmi hooks you already know.",
+    icon: <Users className="h-5 w-5" />,
   },
   {
-    title: "Full Integration",
-    description: "Bring everything together and deploy your complete confidential application.",
-    icon: <Rocket className="h-5 w-5" />
-  }
+    title: "Ship the dApp",
+    description: "Tie everything together, point to the deployed address, and celebrate your first confidential app.",
+    icon: <Rocket className="h-5 w-5" />,
+  },
 ];
 
 export default Home;

@@ -12,6 +12,7 @@ interface TutorialStepProps {
   onPrevious?: () => void;
   onNext?: () => void;
   isCompleted?: boolean;
+  icon?: ReactNode;
 }
 
 const TutorialStep = ({
@@ -22,7 +23,8 @@ const TutorialStep = ({
   totalSteps,
   onPrevious,
   onNext,
-  isCompleted = false
+  isCompleted = false,
+  icon,
 }: TutorialStepProps) => {
   return (
     <div className="max-w-5xl mx-auto">
@@ -54,7 +56,7 @@ const TutorialStep = ({
               : 'bg-primary/10 border-primary text-primary'
             }
           `}>
-            {isCompleted ? <CheckCircle className="h-6 w-6" /> : currentStep}
+            {isCompleted ? <CheckCircle className="h-6 w-6" /> : icon ? icon : currentStep}
           </div>
         </div>
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
