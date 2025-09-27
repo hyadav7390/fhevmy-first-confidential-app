@@ -1,4 +1,4 @@
-import { Settings, ServerCog, FileCog, AlertCircle } from "lucide-react";
+import { Settings, ServerCog, FileCog, AlertCircle, MapPin } from "lucide-react";
 import CodeBlock from "@/components/CodeBlock";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -11,8 +11,9 @@ const StepThreeHardhatConfig = () => {
           Configure Hardhat for FHEVM
         </h3>
         <p className="text-muted-foreground">
-          A regular Hardhat config works, but the FHEVM compiler target and gas defaults need a tweak. Install the helper
-          plugins we rely on through the rest of the tutorial.
+          A regular Hardhat config works, but the FHEVM compiler target and gas defaults need a tweak. For now we point the
+          deployment at <strong>Base Sepolia</strong>, a public L2 testnet with reliable infrastructure. Swap the endpoints back to
+          Zama’s network when it becomes available.
         </p>
         <CodeBlock
           title="Terminal"
@@ -29,7 +30,7 @@ npm install --save-dev @nomicfoundation/hardhat-toolbox @nomicfoundation/hardhat
         </h3>
         <p className="text-muted-foreground">
           Save the configuration below as <code className="bg-code-bg px-1 py-0.5 rounded text-accent">hardhat.config.ts</code>.
-          The Cancun EVM target is required by the current FHEVM toolchain.
+          The Cancun EVM target is required by the current FHEVM toolchain even when you deploy to Base Sepolia.
         </p>
         <CodeBlock
           title="hardhat.config.ts"
@@ -42,6 +43,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
+const BASE_SEPOLIA_RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || "https://base-sepolia.drpc.org";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -52,9 +54,9 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    zama: {
-      url: process.env.ZAMA_DEVNET_URL || "https://devnet.zama.ai/",
-      chainId: 8009,
+    baseSepolia: {
+      url: BASE_SEPOLIA_RPC_URL,
+      chainId: 84532,
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       gas: 10_000_000,
       gasPrice: 1_000_000_000,
@@ -66,15 +68,15 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      zama: process.env.ZAMA_EXPLORER_API_KEY || "",
+      baseSepolia: process.env.BASESCAN_API_KEY || "",
     },
     customChains: [
       {
-        network: "zama",
-        chainId: 8009,
+        network: "baseSepolia",
+        chainId: 84532,
         urls: {
-          apiURL: "https://main.explorer.zama.ai/api",
-          browserURL: "https://main.explorer.zama.ai",
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org",
         },
       },
     ],
@@ -87,6 +89,24 @@ const config: HardhatUserConfig = {
 export default config;
 `}
         />
+        <Card className="bg-card/60 border-card-border">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              Why Base Sepolia?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>
+              Base Sepolia mirrors the JSON-RPC surface area you’ll use on FHEVM networks while giving you faucet access and
+              reliable explorers today. The contract, scripts, and encoding stay identical when you later point at a Zama RPC.
+            </p>
+            <p>
+              Once Zama provides public endpoints, replace <code>BASE_SEPOLIA_RPC_URL</code> and <code>chainId</code> with the
+              official values—everything else remains the same.
+            </p>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="space-y-4">
@@ -102,8 +122,8 @@ export default config;
           title=".env"
           language="bash"
           code={`PRIVATE_KEY=replace_with_private_key_without_0x
-ZAMA_DEVNET_URL=https://devnet.zama.ai/
-ZAMA_EXPLORER_API_KEY=optional_if_you_want_verification`}
+BASE_SEPOLIA_RPC_URL=https://base-sepolia.drpc.org
+BASESCAN_API_KEY=optional_if_you_want_verification`}
         />
         <Card className="bg-warning/5 border-warning/20">
           <CardContent className="text-sm text-muted-foreground flex items-start gap-2">
@@ -140,7 +160,7 @@ main().catch((error) => {
 `}
         />
         <CodeBlock title="Compile & deploy" language="bash" code={`npx hardhat compile
-npx hardhat run scripts/deploy.ts --network zama`} />
+npx hardhat run scripts/deploy.ts --network baseSepolia`} />
       </section>
 
       <Card className="bg-success/5 border-success/20">
@@ -151,7 +171,7 @@ npx hardhat run scripts/deploy.ts --network zama`} />
           <p>At this point you have:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Contracts compiling against the FHEVM toolchain</li>
-            <li>A reproducible deployment script targeting Zama Devnet</li>
+            <li>A reproducible deployment script targeting Base Sepolia</li>
             <li>Environment settings isolated from version control</li>
           </ul>
         </CardContent>

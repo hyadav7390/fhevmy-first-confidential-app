@@ -19,7 +19,7 @@ const StepSixShipIt = () => {
           title=".env"
           language="bash"
           code={`VITE_COUNTER_ADDRESS=0xYourDeployedContract
-VITE_TARGET_CHAIN_ID=8009`}
+VITE_TARGET_CHAIN_ID=84532`}
         />
         <CodeBlock
           title="src/main.tsx"
@@ -45,6 +45,11 @@ createRoot(document.getElementById("root")!).render(
 );
 `}
         />
+        <p className="text-muted-foreground">
+          The providers are now layered as follows: Wagmi handles wallet state, React Query manages encrypted reads, and the
+          UI components sit on top. With <code>VITE_TARGET_CHAIN_ID</code> set, you can redeploy to any compatible RPC and the
+          frontend follows along without a rebuild.
+        </p>
       </section>
 
       <section className="space-y-4">
@@ -91,7 +96,7 @@ export default function App() {
         <header className="space-y-4 text-center">
           <h1 className="text-4xl font-bold">Confidential Counter</h1>
           <p className="text-muted-foreground">
-            End-to-end encrypted arithmetic powered by Zama FHEVM.
+            End-to-end encrypted arithmetic powered by Zama FHEVM, deployed to Base Sepolia for testing.
           </p>
         </header>
 
@@ -176,7 +181,7 @@ export default function App() {
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <ul className="list-disc list-inside space-y-1">
               <li>Run <code>npm run dev</code> in the frontend folder and open <code>http://localhost:5173</code>.</li>
-              <li>Fund the deploying wallet on Zama Devnet (faucet link in the docs) before testing writes.</li>
+              <li>Fund the deploying wallet on Base Sepolia (Bridge or faucet) before testing writes.</li>
               <li>Keep the Hardhat project handy—redeploy whenever you tweak the contract, then update <code>VITE_COUNTER_ADDRESS</code>.</li>
               <li>
                 Share your build in the <a className="text-accent hover:underline" href="https://discord.gg/zama" target="_blank" rel="noreferrer">Zama Discord</a>

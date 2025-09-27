@@ -72,6 +72,8 @@ export default config;
         <p className="text-muted-foreground">
           The frontend needs a small utility to initialise <code>fhevmjs</code>, encrypt numbers, and decrypt responses from
           the contract. Drop the helper below into <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/fhevm.ts</code>.
+          Notice how the chain ID comes from <code>VITE_TARGET_CHAIN_ID</code>, making it easy to point the same UI at Base
+          Sepolia during development or at a Zama endpoint later.
         </p>
         <CodeBlock
           title="src/lib/fhevm.ts"
@@ -79,7 +81,7 @@ export default config;
           code={`import { initFhevm, createInstance, type FhevmInstance } from "fhevmjs";
 import { BrowserProvider, Contract } from "ethers";
 
-const ZAMA_CHAIN_ID = 8009;
+const TARGET_CHAIN_ID = Number(import.meta.env.VITE_TARGET_CHAIN_ID ?? 84532);
 const CONTRACT_ADDRESS = import.meta.env.VITE_COUNTER_ADDRESS || "0xYourContractAddress";
 
 const ABI = [
@@ -95,7 +97,7 @@ export async function ensureFhevmInstance(): Promise<FhevmInstance> {
 
   await initFhevm();
   instance = await createInstance({
-    chainId: ZAMA_CHAIN_ID,
+    chainId: TARGET_CHAIN_ID,
     publicKeyOrAddress: CONTRACT_ADDRESS,
   });
 
@@ -112,11 +114,6 @@ export async function getCounterContract() {
   return new Contract(CONTRACT_ADDRESS, ABI, signer);
 }
 
-export async function encryptUint32(value: number) {
-  const fhe = await ensureFhevmInstance();
-  return fhe.encrypt32(value);
-}
-
 export async function decryptCiphertext(payload: string) {
   const fhe = await ensureFhevmInstance();
   return fhe.decrypt(CONTRACT_ADDRESS, payload);
@@ -127,6 +124,25 @@ export async function decryptCiphertext(payload: string) {
           We will wire this helper into the React hooks in the next steps; keeping it isolated avoids sprinkling encryption
           logic across the UI.
         </p>
+        <Card className="bg-card/60 border-card-border">
+          <CardHeader>
+            <CardTitle className="text-base">Helper Responsibilities</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>
+              <strong>ensureFhevmInstance:</strong> boots the WASM runtime once, caches the instance, and ties it to whichever
+              chain ID you configured through <code>VITE_TARGET_CHAIN_ID</code>.
+            </p>
+            <p>
+              <strong>getCounterContract:</strong> hides the provider/signing boilerplate so the rest of the app only deals with
+              a typed <code>Contract</code> instance.
+            </p>
+            <p>
+              <strong>decryptCiphertext:</strong> centralises decryption so components never call <code>fhevmjs</code> directly. That
+              makes refactors—like switching to streaming decryptions—almost trivial.
+            </p>
+          </CardContent>
+        </Card>
       </section>
 
       <Card className="bg-success/5 border-success/20">

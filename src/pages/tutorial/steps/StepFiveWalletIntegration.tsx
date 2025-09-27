@@ -27,8 +27,9 @@ const StepFiveWalletIntegration = () => {
           Wagmi Configuration
         </h3>
         <p className="text-muted-foreground">
-          Create a small helper that registers the Zama Devnet chain and exposes a shared configuration. Save this as
-          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/wagmi.ts</code>.
+          Create a small helper that registers Base Sepolia and exposes a shared configuration. Save this as
+          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/wagmi.ts</code>. Keeping the setup in one place
+          means you can later swap the chain definition for a Zama-managed RPC without touching the UI.
         </p>
         <CodeBlock
           title="src/lib/wagmi.ts"
@@ -37,39 +38,40 @@ const StepFiveWalletIntegration = () => {
 import { sepolia } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
 
-export const zamaDevnet = {
-  id: 8009,
-  name: "Zama Devnet",
-  network: "zama",
+export const baseSepolia = {
+  id: 84532,
+  name: "Base Sepolia Testnet",
+  network: "base-sepolia",
   nativeCurrency: {
     decimals: 18,
-    name: "ZAMA",
-    symbol: "ZAMA",
+    name: "ETH",
+    symbol: "ETH",
   },
   rpcUrls: {
-    default: { http: ["https://devnet.zama.ai/"] },
-    public: { http: ["https://devnet.zama.ai/"] },
+    default: { http: ["https://base-sepolia.drpc.org"] },
+    public: { http: ["https://base-sepolia.drpc.org"] },
   },
   blockExplorers: {
-    default: { name: "Zama Explorer", url: "https://main.explorer.zama.ai" },
+    default: { name: "BaseScan", url: "https://sepolia.basescan.org" },
   },
 } as const;
 
 export const wagmiConfig = createConfig({
-  chains: [sepolia, zamaDevnet],
+  chains: [sepolia, baseSepolia],
   connectors: [
     injected(),
     walletConnect({ projectId: "your-walletconnect-project-id" }),
   ],
   transports: {
     [sepolia.id]: http(),
-    [zamaDevnet.id]: http(zamaDevnet.rpcUrls.default.http[0]),
+    [baseSepolia.id]: http(baseSepolia.rpcUrls.default.http[0]),
   },
 });
 `}
         />
         <p className="text-sm text-muted-foreground">
-          Feel free to keep Sepolia around for quick debugging—Wagmi makes switching networks from the UI straightforward.
+          Keeping both Sepolia and Base Sepolia in the list mirrors real-world setups where you might offer multiple networks
+          during development. Wagmi takes care of surfacing them in the wallet modal.
         </p>
       </section>
 

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Shield, Code2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import ThemeToggle from "./ThemeToggle";
 
 const Navigation = () => {
   const location = useLocation();
@@ -39,7 +40,8 @@ const Navigation = () => {
             </Link>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            <ThemeToggle />
             <Button
               asChild
               variant="outline"
