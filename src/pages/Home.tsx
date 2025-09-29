@@ -225,7 +225,7 @@ const Home = () => {
 const privacyStages = [
   {
     title: "Encrypt on the client",
-    description: "Inputs are scrambled in the browser using fhevmjs before they touch the blockchain.",
+    description: "Inputs are scrambled in the browser using Zama's relayer SDK before they touch the blockchain.",
     label: "Frontend",
   },
   {

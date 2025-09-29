@@ -27,7 +27,7 @@ const StepFiveWalletIntegration = () => {
           Wagmi Configuration
         </h3>
         <p className="text-muted-foreground">
-          Create a small helper that registers Base Sepolia and exposes a shared configuration. Save this as
+          Create a small helper that registers Sepolia and exposes a shared configuration. Save this as
           <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/wagmi.ts</code>. Keeping the setup in one place
           means you can later swap the chain definition for a Zama-managed RPC without touching the UI.
         </p>
@@ -36,42 +36,26 @@ const StepFiveWalletIntegration = () => {
           language="typescript"
           code={`import { createConfig, http } from "wagmi";
 import { sepolia } from "wagmi/chains";
-import { injected, walletConnect } from "wagmi/connectors";
+import { injected, metaMask } from "wagmi/connectors";
 
-export const baseSepolia = {
-  id: 84532,
-  name: "Base Sepolia Testnet",
-  network: "base-sepolia",
-  nativeCurrency: {
-    decimals: 18,
-    name: "ETH",
-    symbol: "ETH",
-  },
-  rpcUrls: {
-    default: { http: ["https://base-sepolia.drpc.org"] },
-    public: { http: ["https://base-sepolia.drpc.org"] },
-  },
-  blockExplorers: {
-    default: { name: "BaseScan", url: "https://sepolia.basescan.org" },
-  },
-} as const;
+const RPC_URL = import.meta.env.VITE_RPC_URL;
+const sepoliaTransport = RPC_URL ? http(RPC_URL) : http();
 
 export const wagmiConfig = createConfig({
-  chains: [sepolia, baseSepolia],
+  chains: [sepolia],
   connectors: [
-    injected(),
-    walletConnect({ projectId: "your-walletconnect-project-id" }),
+    metaMask({ shimDisconnect: true }),
+    injected({ target: "metaMask" }),
   ],
   transports: {
-    [sepolia.id]: http(),
-    [baseSepolia.id]: http(baseSepolia.rpcUrls.default.http[0]),
+    [sepolia.id]: sepoliaTransport,
   },
 });
 `}
         />
         <p className="text-sm text-muted-foreground">
-          Keeping both Sepolia and Base Sepolia in the list mirrors real-world setups where you might offer multiple networks
-          during development. Wagmi takes care of surfacing them in the wallet modal.
+          Target MetaMask explicitly so the injected connector doesn’t bounce users to Coinbase when multiple wallet
+          extensions are installed. The generic injected fallback still allows other extensions to connect manually.
         </p>
       </section>
 
@@ -81,69 +65,53 @@ export const wagmiConfig = createConfig({
           Hook Contracts Into the UI
         </h3>
         <p className="text-muted-foreground">
-          Wire up a typed React hook that takes care of encryption, contract writes, and re-encryption for reads. Place the
-          code below in <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/hooks/useCounter.ts</code>.
-          It uses the helpers from Step 4 and Wagmi for account state.
+          Wire up a typed React hook that takes care of encryption, contract writes, and the “reveal” read path. Place the code
+          below in <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/hooks/useCookieJar.ts</code>. It uses the
+          helpers from Step 4 and Wagmi for account state.
         </p>
         <CodeBlock
-          title="src/hooks/useCounter.ts"
+          title="src/hooks/useCookieJar.ts"
           language="typescript"
           code={`import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BrowserProvider, ethers } from "ethers";
-import {
-  ensureFhevmInstance,
-  decryptCiphertext,
-  getCounterContract,
-} from "../lib/fhevm";
+import { ethers } from "ethers";
+import { getCookieJarContract, buildEncryptedCookies, ensureFhevmInstance } from "../lib/fhevm";
 
-const CONTRACT_ADDRESS = import.meta.env.VITE_COUNTER_ADDRESS || "0xYourContractAddress";
+const COOKIE_TOTAL_QUERY_KEY = ["cookie-total"] as const;
 
-export function useCounter() {
+export function useCookieJar() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
+  const { connect, connectors, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const queryClient = useQueryClient();
 
-  const counterQuery = useQuery({
-    queryKey: ["counter", address],
-    enabled: Boolean(address && isConnected),
-    queryFn: async () => {
-      const fhe = await ensureFhevmInstance();
-      const identity = fhe.getPublicKey();
-      if (!identity) throw new Error("FHE public key not available yet");
-
-      const contract = await getCounterContract();
-      const provider = new BrowserProvider(window.ethereum!);
-      const signer = await provider.getSigner();
-      const { domain, types, message } = fhe.createEIP712(
-        ethers.hexlify(identity.publicKey),
-        CONTRACT_ADDRESS,
-        address
-      );
-      const signature = await signer.signTypedData(domain, types, message);
-      const raw = await contract.viewCounter(identity.publicKeyId, signature);
-      return decryptCiphertext(raw);
-    },
-  });
-
-  const increment = useMutation({
-    mutationFn: async () => {
-      const contract = await getCounterContract();
-      return contract.increment();
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["counter"] }),
-  });
-
-  const addValue = useMutation({
+  const addCookies = useMutation({
     mutationFn: async (amount: number) => {
-      const fhe = await ensureFhevmInstance();
-      const contract = await getCounterContract();
-      const zkInput = fhe.createEncryptedInput(CONTRACT_ADDRESS, address!);
-      const { handles } = await zkInput.add32(amount).encrypt();
-      return contract.add(ethers.hexlify(handles[0]));
+      if (!address || !isConnected) throw new Error("Connect a wallet first");
+      const contract = await getCookieJarContract();
+      const { handle, inputProof } = await buildEncryptedCookies(amount, address);
+      return contract.addCookies(handle, inputProof);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["counter"] }),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: COOKIE_TOTAL_QUERY_KEY });
+    },
+  });
+
+  const totalQuery = useQuery({
+    queryKey: COOKIE_TOTAL_QUERY_KEY,
+    enabled: false,
+    queryFn: async () => {
+      const contract = await getCookieJarContract();
+      const encryptedHandle = await contract.encryptedTotal();
+      const handleHex = ethers.hexlify(encryptedHandle);
+      const fhe = await ensureFhevmInstance();
+      const decrypted = await fhe.publicDecrypt([handleHex]);
+      const total = decrypted[handleHex];
+      if (total === undefined) {
+        throw new Error("Unable to decrypt cookie jar");
+      }
+      return Number(total);
+    },
   });
 
   return {
@@ -152,24 +120,18 @@ export function useCounter() {
     connect,
     connectors,
     isConnecting: isPending,
+    connectError,
     disconnect,
-    counterQuery,
-    increment,
-    addValue,
+    addCookies,
+    totalQuery,
   };
 }
 `}
         />
         <p className="text-sm text-muted-foreground">
-          The hook exposes mutations for incrementing with plaintext (+1) and for adding arbitrary encrypted values.
-          Because decrypting requires a signature, we rely on the connected wallet to sign the EIP-712 payload.
-          Convert the <code>publicKeyId</code> to a <code>bytes32</code> value exactly as described in the
-          <a
-            href="https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial"
-            className="text-accent hover:underline ml-1"
-            target="_blank"
-            rel="noreferrer"
-          >official quick-start</a> if your SDK version returns it as base64.
+          The hook exposes one mutation (<code>addCookies</code>) and one lazy query (<code>totalQuery</code>). Clearing the cached
+          reveal after every contribution keeps the UI honest: the next “Reveal total” click will fetch a fresh, relayer-decrypted
+          value.
         </p>
       </section>
 
@@ -180,9 +142,9 @@ export function useCounter() {
         <CardContent className="text-sm text-muted-foreground space-y-1">
           <p>Each user action now flows as follows:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li><strong>Write:</strong> Build a ZK input with <code>createEncryptedInput</code>, encrypt client side, and send the ciphertext handle.</li>
-            <li><strong>On-chain compute:</strong> The contract uses <code>TFHE.add</code> with the received handle.</li>
-            <li><strong>Read:</strong> Request a re-encrypted snapshot via <code>viewCounter</code>, sign the typed data, decrypt locally.</li>
+            <li><strong>Write:</strong> Build a ZK input with <code>createEncryptedInput</code>, encrypt the cookie count, and send the handle + proof.</li>
+            <li><strong>On-chain compute:</strong> The contract uses <code>TFHE.add</code> with the received <code>einput</code> to update the hidden jar.</li>
+            <li><strong>Read:</strong> The lazy <code>totalQuery</code> asks the relayer for a public decryption of the encrypted total when bakers request the reveal.</li>
           </ul>
         </CardContent>
       </Card>

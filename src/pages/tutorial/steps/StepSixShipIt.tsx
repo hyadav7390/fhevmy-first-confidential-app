@@ -12,157 +12,168 @@ const StepSixShipIt = () => {
           Wire Everything Together
         </h3>
         <p className="text-muted-foreground">
-          Point the frontend at the deployed contract and mount providers once at the root of the app. Expose the
-          contract address through an environment variable so you can swap networks without rebuilding.
+          Point the frontend at the deployed contract and confirm the providers are in place. In
+          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">frontend/.env</code> replace the placeholder jar address with
+          the value printed by <code>scripts/deploy.ts</code>.
         </p>
         <CodeBlock
-          title=".env"
+          title="frontend/.env"
           language="bash"
-          code={`VITE_COUNTER_ADDRESS=0xYourDeployedContract
-VITE_TARGET_CHAIN_ID=84532`}
+          code={`# keep the existing relayer + rpc endpoints
+VITE_COOKIE_JAR_ADDRESS=0xYourDeployedJarAddress`}
         />
-        <CodeBlock
-          title="src/main.tsx"
-          language="typescript"
-          code={`import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { WagmiProvider } from "wagmi";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import App from "./App";
-import "./index.css";
-import { wagmiConfig } from "./lib/wagmi";
-
-const queryClient = new QueryClient();
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </WagmiProvider>
-  </StrictMode>
-);
-`}
-        />
-        <p className="text-muted-foreground">
-          The providers are now layered as follows: Wagmi handles wallet state, React Query manages encrypted reads, and the
-          UI components sit on top. With <code>VITE_TARGET_CHAIN_ID</code> set, you can redeploy to any compatible RPC and the
-          frontend follows along without a rebuild.
+        <p className="text-muted-foreground text-sm">
+          The rest of the variables you set in Step 4 stay the same. Update the address alone whenever you redeploy.
         </p>
       </section>
 
       <section className="space-y-4">
         <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-success" />
-          Build the Counter Screen
+          Build the Cookie Jar Screen
         </h3>
         <p className="text-muted-foreground">
-          The UI below consumes <code>useCounter</code>. It connects wallets, switches networks when required, and
-          demonstrates both plaintext and encrypted interactions.
+          Drop in the final UI. It consumes <code>useCookieJar</code>, keeps contributions private, and lets bakers decrypt the jar
+          on demand. Replace <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/App.tsx</code> with the snippet below.
         </p>
         <CodeBlock
           title="src/App.tsx"
           language="tsx"
           code={`import { useState } from "react";
-import { Button } from "./components/ui/button";
-import { Card, CardContent } from "./components/ui/card";
-import { useCounter } from "./hooks/useCounter";
+import { useCookieJar } from "./hooks/useCookieJar";
+
+const MAX_RENDERED_COOKIES = 60;
 
 export default function App() {
-  const [custom, setCustom] = useState(5);
+  const [cookies, setCookies] = useState(3);
   const {
     isConnected,
     address,
     connect,
     connectors,
     isConnecting,
+    connectError,
     disconnect,
-    counterQuery,
-    increment,
-    addValue,
-  } = useCounter();
+    addCookies,
+    totalQuery,
+  } = useCookieJar();
 
   const handleConnect = async () => {
-    const connector = connectors[0];
+    const connector =
+      connectors.find((item) => item.id === "metaMask" && item.ready) ??
+      connectors.find((item) => item.ready) ??
+      connectors[0];
+
+    if (!connector) return;
+
     await connect({ connector });
   };
 
-  const counterValue = counterQuery.data ?? "🔒 confidential";
+  const revealedTotal = totalQuery.data ?? null;
+  const jarDisplay = revealedTotal
+    ? "🍪".repeat(Math.min(revealedTotal, MAX_RENDERED_COOKIES)).concat(revealedTotal > MAX_RENDERED_COOKIES ? " …" : "")
+    : "🔒";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 text-slate-100">
-      <div className="max-w-3xl mx-auto px-6 py-16 space-y-12">
-        <header className="space-y-4 text-center">
-          <h1 className="text-4xl font-bold">Confidential Counter</h1>
-          <p className="text-muted-foreground">
-            End-to-end encrypted arithmetic powered by Zama FHEVM, deployed to Base Sepolia for testing.
+    <div className="min-vh-100 bg-dark text-light py-5">
+      <div className="container">
+        <header className="text-center mb-5">
+          <h1 className="fw-bold display-5">Secret Cookie Jar</h1>
+          <p className="text-secondary">
+            Everyone drops cookies into the jar, but only the grand reveal shows how many treats the crew collected.
           </p>
         </header>
 
-        <Card className="bg-slate-900/40 border-slate-800">
-          <CardContent className="p-6 space-y-6">
+        <div className="card bg-secondary bg-opacity-25 border border-secondary-subtle shadow-sm">
+          <div className="card-body p-4">
             {!isConnected ? (
-              <div className="space-y-4 text-center">
-                <p>Connect a wallet to start encrypting values.</p>
-                <Button onClick={handleConnect} disabled={isConnecting}>
-                  {isConnecting ? "Connecting..." : "Connect Wallet"}
-                </Button>
+              <div className="text-center">
+                <p className="mb-3">Connect a wallet to add your encrypted cookies.</p>
+                <button className="btn btn-primary" onClick={handleConnect} disabled={isConnecting}>
+                  {isConnecting ? "Connecting…" : "Connect Wallet"}
+                </button>
+                {!connectors.some((connector) => connector.ready) && (
+                  <p className="text-danger small mt-3">
+                    MetaMask extension not detected. Install it or open the app in a MetaMask-enabled browser.
+                  </p>
+                )}
+                {connectError && (
+                  <p className="text-danger small mt-3">{connectError.message}</p>
+                )}
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Connected as</span>
-                  <span className="font-mono">{address?.slice(0, 6)}…{address?.slice(-4)}</span>
+              <div className="row g-4">
+                <div className="col-12 d-flex justify-content-between align-items-center text-secondary">
+                  <span>Wallet</span>
+                  <span className="fw-semibold">{address?.slice(0, 6)}…{address?.slice(-4)}</span>
                 </div>
 
-                <div className="text-center space-y-2">
-                  <p className="text-muted-foreground text-sm">Encrypted counter value</p>
-                  <p className="text-4xl font-semibold">{counterValue}</p>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Button onClick={() => increment.mutate()} disabled={increment.isPending}>
-                    {increment.isPending ? "Submitting…" : "Increment (+1)"}
-                  </Button>
-                  <div className="flex gap-2">
-                    <input
-                      value={custom}
-                      min={1}
-                      max={1000}
-                      type="number"
-                      onChange={(event) => setCustom(Number(event.target.value))}
-                      className="flex-1 rounded-md bg-slate-800 border border-slate-700 px-3 py-2"
-                    />
-                    <Button
-                      onClick={() => addValue.mutate(custom)}
-                      disabled={addValue.isPending || custom <= 0}
-                      variant="secondary"
-                    >
-                      {addValue.isPending ? "Encrypting…" : "Add"}
-                    </Button>
+                <div className="col-12">
+                  <div className="bg-dark rounded py-4 text-center border border-secondary-subtle">
+                    <p className="text-secondary mb-2">Cookie jar status</p>
+                    <div className="fs-1" aria-live="polite">
+                      {jarDisplay}
+                    </div>
+                    {revealedTotal !== null ? (
+                      <p className="mt-3 text-success fw-semibold">
+                        🍪 Total cookies collected: {revealedTotal}
+                      </p>
+                    ) : (
+                      <p className="mt-3 text-secondary">
+                        Nobody knows the total yet — contributions stay secret until you reveal them.
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {(increment.isError || addValue.isError) && (
-                  <p className="text-sm text-red-300">
-                    {(increment.error || addValue.error)?.message || "Transaction failed"}
-                  </p>
-                )}
+                <div className="col-md-6 d-flex gap-2 align-items-center">
+                  <label className="form-label mb-0 text-secondary" htmlFor="cookie-input">
+                    Your cookies
+                  </label>
+                  <input
+                    id="cookie-input"
+                    value={cookies}
+                    min={1}
+                    max={5}
+                    type="number"
+                    onChange={(event) => setCookies(Number(event.target.value))}
+                    className="form-control form-control-lg"
+                  />
+                </div>
+                <div className="col-md-6 d-grid gap-2">
+                  <button
+                    className="btn btn-primary btn-lg"
+                    onClick={() => addCookies.mutate(cookies)}
+                    disabled={addCookies.isPending || cookies < 1 || cookies > 5}
+                  >
+                    {addCookies.isPending ? "Dropping cookies…" : "Add cookies"}
+                  </button>
+                  {(addCookies.isError || totalQuery.isError) && (
+                    <p className="text-danger small mb-0">
+                      {(addCookies.error || totalQuery.error)?.message || "Something went wrong"}
+                    </p>
+                  )}
+                </div>
 
-                <div className="text-right">
-                  <Button variant="ghost" onClick={() => disconnect()} className="text-red-400 hover:text-red-200">
+                <div className="col-12 d-flex gap-2">
+                  <button
+                    className="btn btn-outline-light flex-grow-1"
+                    onClick={() => totalQuery.refetch()}
+                    disabled={totalQuery.isFetching}
+                  >
+                    {totalQuery.isFetching ? "Decrypting jar…" : "Reveal total cookies"}
+                  </button>
+                  <button className="btn btn-outline-danger" onClick={() => disconnect()}>
                     Disconnect
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <footer className="text-center text-xs text-muted-foreground">
-          Gas usage and transaction status are surfaced in the wallet. Expect higher gas than a vanilla counter because of
-          the encrypted arithmetic.
+        <footer className="text-center text-secondary small mt-4">
+          Each drop stays private thanks to homomorphic encryption. Only the final reveal uncovers the cookie bounty.
         </footer>
       </div>
     </div>
@@ -180,16 +191,19 @@ export default function App() {
         <Card className="bg-success/5 border-success/20">
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <ul className="list-disc list-inside space-y-1">
-              <li>Run <code>npm run dev</code> in the frontend folder and open <code>http://localhost:5173</code>.</li>
-              <li>Fund the deploying wallet on Base Sepolia (Bridge or faucet) before testing writes.</li>
-              <li>Keep the Hardhat project handy—redeploy whenever you tweak the contract, then update <code>VITE_COUNTER_ADDRESS</code>.</li>
-              <li>
-                Share your build in the <a className="text-accent hover:underline" href="https://discord.gg/zama" target="_blank" rel="noreferrer">Zama Discord</a>
-                and explore more complex encrypted state machines.
-              </li>
+              <li>Run <code>npm run lint</code>, <code>npm run build</code>, and <code>npx hardhat test</code> to make sure both workspaces are healthy before redeploying.</li>
+              <li>Start the UI with <code>npm run dev</code> in <code>frontend/</code> and open <code>http://localhost:5173</code>.</li>
+              <li>Fund the deploying wallet on Sepolia (bridge or faucet) before testing writes.</li>
+              <li>Keep the Hardhat project handy—redeploy whenever you tweak the contract, then update <code>VITE_COOKIE_JAR_ADDRESS</code>.</li>
+              <li>Share your build in the <a className="text-accent hover:underline" href="https://discord.gg/zama" target="_blank" rel="noreferrer">Zama Discord</a> and inspire the next batch of encrypted party games.</li>
             </ul>
           </CardContent>
         </Card>
+
+        <p className="text-muted-foreground text-sm text-center">
+          Congratulations—you now have a sugary secret keeper that only reveals the final cookie haul when the crew agrees. Add
+          seasonal themes, batch reveals, or encrypted leaderboards to keep the fun going.
+        </p>
 
         <div className="text-center">
           <Button asChild size="lg" className="bg-gradient-primary hover:shadow-glow">
