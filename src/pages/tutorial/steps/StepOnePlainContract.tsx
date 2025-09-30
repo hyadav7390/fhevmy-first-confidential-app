@@ -78,7 +78,6 @@ export default config;`}
   ],
   "exclude": ["node_modules"]
 }`} />
-        <CodeBlock title="Create workspace folders" language="bash" code={`mkdir -p scripts test`} />
         <p className="text-sm text-muted-foreground">
           Matching the Solidity pragma (0.8.24) keeps Hardhat happy, and the optimizer settings transfer cleanly to the encrypted
           version we’ll build later. In Step&nbsp;3 we’ll extend this with Sepolia network settings and environment variables.
@@ -92,8 +91,7 @@ export default config;`}
         </h3>
         <p className="text-muted-foreground">
           The non-encrypted version keeps things playful: every baker can drop 1–5 cookies into the jar, and anyone can trigger a
-          reveal that shouts the total. We deliberately emit the previous and new totals in events so UIs (and tests) can narrate
-          what happened.
+          reveal that shouts the total.
         </p>
         <CodeBlock
           title="contracts/CookieJar.sol"

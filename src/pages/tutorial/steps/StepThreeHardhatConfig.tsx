@@ -60,7 +60,7 @@ const StepThreeHardhatConfig = () => {
         </h3>
         <p className="text-muted-foreground">
           A regular Hardhat config works. Since the <code>fhevm</code> Solidity libraries target <strong>^0.8.24</strong>, we’ll
-          bump the Solidity version accordingly. For on-chain tests we deploy to Zama’s FHE-enabled <strong>Sepolia</strong>
+          bump the Solidity version accordingly. For on-chain tests we deploy to Zama’s FHE-enabled <strong>Sepolia </strong>
           endpoint, which exposes the ACL, executor, payment, and verifier contracts required by the TFHE helpers.
         </p>
         <p className="text-sm text-muted-foreground">
@@ -84,9 +84,7 @@ const StepThreeHardhatConfig = () => {
           Hardhat Configuration File
         </h3>
         <p className="text-muted-foreground">
-          Replace the placeholder config from Step 1 with the version below. The key change is setting Solidity to 0.8.24 to
-          match the <code>fhevm</code> library. Because Step&nbsp;2 swapped the constructor to use Zama’s Sepolia config helper,
-          you’ll redeploy this contract after compiling so the chain version stays in sync with the frontend.
+          Replace the placeholder config from Step 1 with the version below. The key change is setting the configurations for sepolia network. 
         </p>
         <CodeBlock title="hardhat.config.ts" language="typescript" code={HARDHAT_CONFIG_CODE} />
       </section>
@@ -112,15 +110,14 @@ SEPOLIA_RPC_URL=https://sepolia.gateway.tenderly.co
 SEPOLIA_ETHERSCAN_API_KEY=optional_if_you_want_verification`}
         />
         <Card className="bg-warning/5 border-warning/20 mt-2">
-          <CardContent className="text-sm text-muted-foreground flex items-start gap-2">
+          <CardContent className="text-sm text-muted-foreground flex items-start gap-2 pt-6">
             <AlertCircle className="h-4 w-4 text-warning mt-0.5" />
             Never commit the <code>.env</code> file—add it to <code>.gitignore</code> immediately.
           </CardContent>
         </Card>
         <p className="text-muted-foreground">
           Upgrade the default deploy script to log helpful diagnostics. Save this as
-          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">scripts/deploy.ts</code>. The script now checks for a
-          configured signer so you immediately know if <code>PRIVATE_KEY</code> is missing.
+          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">scripts/deploy.ts</code>.
         </p>
         <CodeBlock
           title="scripts/deploy.ts"

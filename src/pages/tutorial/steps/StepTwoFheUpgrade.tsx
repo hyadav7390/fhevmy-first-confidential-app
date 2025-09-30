@@ -11,7 +11,7 @@ const StepTwoFheUpgrade = () => {
           Install FHEVM Primitives
         </h3>
         <p className="text-muted-foreground">
-          Zama’s newer toolchain lives in <code className="bg-code-bg px-1 py-0.5 rounded text-accent">@fhevm/solidity</code> and
+          Zama’s toolchain lives in <code className="bg-code-bg px-1 py-0.5 rounded text-accent">@fhevm/solidity</code> and
           <code className="bg-code-bg px-1 py-0.5 rounded text-accent">encrypted-types</code>. These packages expose the
           <code>FHE</code> helpers and encrypted value types that mirror the plaintext contract from Step&nbsp;1.
         </p>
@@ -37,8 +37,7 @@ const StepTwoFheUpgrade = () => {
             infrastructure, stores ciphertext, or emits metadata the frontend can use without revealing contributions.
           </span>
           <span className="block">
-            We keep emitting the encrypted handle for each contribution—frontends never learn who added how many cookies, only
-            that the jar changed.
+            We keep emitting the encrypted handle for each contribution—frontends never learn who added how many cookies.
           </span>
         </p>
         <CodeBlock
@@ -119,7 +118,7 @@ contract EncryptedCookieJar is SepoliaConfig {
           </Card>
         </div>
         <Card className="bg-muted/20 border-card-border">
-          <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground">
+          <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground pt-6">
             <div className="flex items-start gap-2">
               <RefreshCw className="h-4 w-4 text-accent mt-0.5" />
               <p>

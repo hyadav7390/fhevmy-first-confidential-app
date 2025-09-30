@@ -215,7 +215,7 @@ VITE_COOKIE_JAR_ADDRESS=0xYourDeployedJarAddress`}
           Final Checks
         </h3>
         <Card className="bg-success/5 border-success/20">
-          <CardContent className="text-sm text-muted-foreground space-y-2">
+          <CardContent className="text-sm text-muted-foreground space-y-2 pt-6">
             <ul className="list-disc list-inside space-y-1">
               <li>Run <code>npm run lint</code>, <code>npm run build</code>, and <code>npx hardhat test</code> to make sure both workspaces are healthy before redeploying.</li>
               <li>Start the UI with <code>npm run dev</code> in <code>frontend/</code> and open <code>http://localhost:5173</code>.</li>

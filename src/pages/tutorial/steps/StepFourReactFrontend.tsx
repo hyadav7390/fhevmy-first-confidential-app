@@ -11,7 +11,7 @@ const StepFourReactFrontend = () => {
           Bootstrap a Vite + TypeScript Frontend
         </h3>
         <p className="text-muted-foreground">
-          Time to give the cookie jar a face. We keep the React app in a sibling <code className="bg-code-bg px-1 py-0.5 rounded text-accent">frontend</code>
+          Time to give the cookie jar a face. We keep the React app in a sibling <code className="bg-code-bg px-1 py-0.5 rounded text-accent">frontend </code>
           folder so contract code and UI code stay decoupled.
         </p>
         <CodeBlock
@@ -30,7 +30,7 @@ npm install --save-dev buffer process stream-browserify util`}
         />
         <p className="text-sm text-muted-foreground space-y-1">
           <span className="block">
-            <code>@zama-fhe/relayer-sdk@latest</code> replaces the deprecated <code>fhevmjs</code> package and ships the relayer-aware
+            <code>@zama-fhe/relayer-sdk@latest</code> ships the relayer-aware
             WebAssembly runtime—stick to the newest release so proof formats stay compatible with the on-chain verifier.
           </span>
           <span className="block">
@@ -94,7 +94,7 @@ createRoot(document.getElementById("root")!).render(
           language="typescript"
           code={`import { createConfig, http } from "wagmi";
 import { sepolia } from "wagmi/chains";
-import { injected, metaMask } from "wagmi/connectors";
+import { injected } from "wagmi/connectors";
 
 const RPC_URL = import.meta.env.VITE_RPC_URL;
 const sepoliaTransport = RPC_URL ? http(RPC_URL) : http();
@@ -102,7 +102,6 @@ const sepoliaTransport = RPC_URL ? http(RPC_URL) : http();
 export const wagmiConfig = createConfig({
   chains: [sepolia],
   connectors: [
-    metaMask({ shimDisconnect: true }),
     injected({ target: "metaMask" }),
   ],
   transports: {
@@ -408,12 +407,8 @@ export {};
             "}",
           ].join("\n")}
         />
-        <p className="text-xs text-muted-foreground">
-          The cast on <code>window</code> keeps TypeScript happy even if other wallet SDKs (like Coinbase) widen
-          <code>window.ethereum</code> to <code>any</code>; no extra global ambient declarations required.
-        </p>
         <Card className="bg-muted/20 border-card-border">
-          <CardContent className="text-xs text-muted-foreground">
+          <CardContent className="text-xs text-muted-foreground pt-6">
             Restart <code>npm run dev</code> whenever you edit <code>.env</code>—Vite reads environment variables only at startup, so
             stale config is a common root cause of proof or connection errors.
           </CardContent>
