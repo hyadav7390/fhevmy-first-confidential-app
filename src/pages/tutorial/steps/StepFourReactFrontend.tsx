@@ -164,6 +164,121 @@ export default defineConfig({
 
       <section className="space-y-4">
         <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <Palette className="h-5 w-5 text-primary" />
+          Layer the Nebula Theme
+        </h3>
+        <p className="text-muted-foreground">
+          Give the UI a cohesive look by introducing global variables, typography tweaks, and the starfield backdrop. Replace
+          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/index.css</code> with the palette below.
+        </p>
+        <CodeBlock
+          title="src/index.css"
+          language="css"
+          code={String.raw`:root {
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color-scheme: dark;
+  color: #f7f5ff;
+  background-color: #060821;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --nebula-night: radial-gradient(circle at 20% 20%, #2a1f6b 0%, rgba(6, 8, 33, 0.35) 55%),
+    radial-gradient(circle at 75% 10%, rgba(252, 191, 73, 0.35) 0%, rgba(6, 8, 33, 0.15) 45%),
+    linear-gradient(160deg, #060821 0%, #120f3b 55%, #1f0f38 100%);
+  --starlight: rgba(255, 255, 255, 0.12);
+  --frosted-panel: rgba(14, 17, 56, 0.75);
+  --accent: #f7b93d;
+  --accent-soft: rgba(247, 185, 61, 0.2);
+  --accent-strong: #ffde8c;
+  --danger: #ff5f7e;
+  --text-strong: #fbf9ff;
+  --text-muted: rgba(247, 245, 255, 0.78);
+}
+
+a {
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-strong);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--nebula-night);
+  display: block;
+  color: var(--text-strong);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(1px 1px at 30% 20%, rgba(255, 255, 255, 0.35) 0, transparent 60%),
+    radial-gradient(1px 1px at 60% 65%, rgba(255, 255, 255, 0.18) 0, transparent 55%),
+    radial-gradient(1px 1px at 80% 30%, rgba(255, 255, 255, 0.22) 0, transparent 50%);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: -1;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+input {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: inherit;
+  padding: 0.65em 1em;
+}
+
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.25rem var(--accent-soft);
+  outline: none;
+}
+
+.card,
+.card-body {
+  background: transparent;
+}
+
+.text-secondary {
+  color: var(--text-muted) !important;
+}
+
+.text-warning {
+  color: rgba(255, 230, 170, 0.92) !important;
+}
+
+small {
+  color: var(--text-muted);
+}
+
+@media (max-width: 576px) {
+  header .display-5 {
+    font-size: 2.2rem;
+  }
+}
+`}
+        />
+        <p className="text-sm text-muted-foreground">
+          The shared palette keeps typography readable on a dark backdrop and provides accent hooks the rest of the tutorial reuses in the nebula layout.
+        </p>
+      </section>
+
+      <section className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
           <Puzzle className="h-5 w-5 text-primary" />
           Frontend Environment Variables
         </h3>
