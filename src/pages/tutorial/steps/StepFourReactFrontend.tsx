@@ -22,15 +22,19 @@ const StepFourReactFrontend = () => {
 npm create vite@latest . -- --template react-ts
 # install the default React runtime deps declared in package.json
 npm install
-# add the relayer SDK + data plumbing + Bootstrap styling
-npm install @zama-fhe/relayer-sdk ethers @tanstack/react-query bootstrap
+# add the relayer SDK + data plumbing + Bootstrap + Wagmi wallet tooling
+npm install @zama-fhe/relayer-sdk@latest ethers @tanstack/react-query bootstrap \
+  wagmi viem @wagmi/core @wagmi/connectors
 # polyfill node globals that the relayer SDK expects
 npm install --save-dev buffer process stream-browserify util`}
         />
         <p className="text-sm text-muted-foreground space-y-1">
           <span className="block">
-            <code>@zama-fhe/relayer-sdk</code> replaces the deprecated <code>fhevmjs</code> package and ships the relayer-aware
-            WebAssembly runtime.
+            <code>@zama-fhe/relayer-sdk@latest</code> replaces the deprecated <code>fhevmjs</code> package and ships the relayer-aware
+            WebAssembly runtime—stick to the newest release so proof formats stay compatible with the on-chain verifier.
+          </span>
+          <span className="block">
+            Wagmi + Viem give us ergonomic wallet hooks and RPC helpers; the connectors package targets MetaMask explicitly.
           </span>
           <span className="block">
             The extra dev dependencies expose browser-friendly versions of Node globals (<code>Buffer</code>, <code>process</code>, streams,
@@ -82,8 +86,34 @@ createRoot(document.getElementById("root")!).render(
 `}
         />
         <p className="text-sm text-muted-foreground">
-          The shims keep the relayer SDK happy in browsers; everything else is standard Vite + React wiring. We’ll drop the cookie
-          jar UI in Step&nbsp;6. For now, the app will complain about a missing <code>./lib/wagmi</code> module—we add it next.
+          The shims keep the relayer SDK happy in browsers; everything else is standard Vite + React wiring. Before the compiler
+          starts grumbling about the missing Wagmi helper, create it now so the imports resolve immediately.
+        </p>
+        <CodeBlock
+          title="src/lib/wagmi.ts"
+          language="typescript"
+          code={`import { createConfig, http } from "wagmi";
+import { sepolia } from "wagmi/chains";
+import { injected, metaMask } from "wagmi/connectors";
+
+const RPC_URL = import.meta.env.VITE_RPC_URL;
+const sepoliaTransport = RPC_URL ? http(RPC_URL) : http();
+
+export const wagmiConfig = createConfig({
+  chains: [sepolia],
+  connectors: [
+    metaMask({ shimDisconnect: true }),
+    injected({ target: "metaMask" }),
+  ],
+  transports: {
+    [sepolia.id]: sepoliaTransport,
+  },
+});
+`}
+        />
+        <p className="text-sm text-muted-foreground">
+          Target MetaMask first so the “Connect” button doesn’t bounce users to Coinbase when multiple extensions are installed.
+          The generic injected fallback still lets other wallets hook in manually.
         </p>
         <CodeBlock
           title="vite.config.ts"
@@ -164,8 +194,8 @@ VITE_COOKIE_JAR_ADDRESS=0xYourContractAddress`}
           Client Helpers for Encryption
         </h3>
         <p className="text-muted-foreground">
-          The helper below initialises the relayer SDK, validates configuration, and exposes a small API for encrypted writes and
-          decrypting the jar total. Save it as <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/fhevm.ts</code>.
+          The helper below initialises the relayer SDK, validates configuration (matching the Sepolia addresses above), and
+          exposes a small API for encrypted writes plus decrypting the jar total. Save it as <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/fhevm.ts</code>.
         </p>
         <CodeBlock
           title="src/lib/fhevm.ts"
@@ -186,17 +216,11 @@ const RPC_URL = import.meta.env.VITE_RPC_URL ?? "";
 
 const ABI = [
   "function addCookies(bytes32 encryptedAmount, bytes inputProof)",
-  "function encryptedTotal() view returns (uint256)",
+  "function encryptedTotal() view returns (bytes32)",
   "function revealTotal() returns (uint32)",
 ];
 
 let instance: FhevmInstance | null = null;
-
-declare global {
-  interface Window {
-    ethereum?: Eip1193Provider;
-  }
-}
 
 function ensureConfigured() {
   if (!ethers.isAddress(ACL_CONTRACT_ADDRESS)) {
@@ -244,7 +268,7 @@ export async function ensureFhevmInstance(): Promise<FhevmInstance> {
 }
 
 export async function getCookieJarContract() {
-  const ethereum = window.ethereum;
+  const { ethereum } = window as typeof window & { ethereum?: Eip1193Provider };
   if (!ethereum) {
     throw new Error("A browser wallet is required");
   }
@@ -267,6 +291,133 @@ export {};
         <p className="text-sm text-muted-foreground">
           We’ll consume this helper in Step&nbsp;5 to submit cookies and in Step&nbsp;6 to decrypt the final haul.
         </p>
+        <p className="text-sm text-muted-foreground">
+          Decryption calls require an EIP-712 signature that authorises the relayer to act on behalf of the user. Cache that
+          signature so bakers sign it once per device by adding the utility below as <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/decryptionSignature.ts</code>.
+        </p>
+        <CodeBlock
+          title="src/lib/decryptionSignature.ts"
+          language="typescript"
+          code={[
+            "import type { FhevmInstance } from \"@zama-fhe/relayer-sdk/web\";",
+            "import { ethers } from \"ethers\";",
+            "",
+            "export type StoredDecryptionSignature = {",
+            "  publicKey: string;",
+            "  privateKey: string;",
+            "  signature: string;",
+            "  userAddress: `0x${string}`;",
+            "  contractAddresses: `0x${string}`[];",
+            "  startTimestamp: number;",
+            "  durationDays: number;",
+            "};",
+            "",
+            "const STORAGE_PREFIX = \"fhevm-cookie-jar-signature\";",
+            "const ONE_DAY = 24 * 60 * 60;",
+            "",
+            "const memoryStore = new Map<string, string>();",
+            "",
+            "type StorageProvider = {",
+            "  getItem: (key: string) => string | null;",
+            "  setItem: (key: string, value: string) => void;",
+            "  removeItem: (key: string) => void;",
+            "};",
+            "",
+            "function resolveStorage(): StorageProvider {",
+            "  if (typeof window !== \"undefined\" && window.localStorage) {",
+            "    return window.localStorage;",
+            "  }",
+            "  return {",
+            "    getItem: (key) => memoryStore.get(key) ?? null,",
+            "    setItem: (key, value) => {",
+            "      memoryStore.set(key, value);",
+            "    },",
+            "    removeItem: (key) => {",
+            "      memoryStore.delete(key);",
+            "    },",
+            "  };",
+            "}",
+            "",
+            "function storageKey(userAddress: string, contractAddress: string) {",
+            "  return `${STORAGE_PREFIX}:${userAddress.toLowerCase()}:${contractAddress.toLowerCase()}`;",
+            "}",
+            "",
+            "function isSignatureValid(signature: StoredDecryptionSignature): boolean {",
+            "  const expiresAt = signature.startTimestamp + signature.durationDays * ONE_DAY;",
+            "  return Math.floor(Date.now() / 1000) < expiresAt;",
+            "}",
+            "",
+            "export async function loadOrCreateSignature(",
+            "  instance: FhevmInstance,",
+            "  contractAddress: string,",
+            "  signer: ethers.Signer",
+            "): Promise<StoredDecryptionSignature> {",
+            "  const userAddress = (await signer.getAddress()) as `0x${string}`;",
+            "  const key = storageKey(userAddress, contractAddress);",
+            "  const storage = resolveStorage();",
+            "",
+            "  const cachedValue = storage.getItem(key);",
+            "  if (cachedValue) {",
+            "    try {",
+            "      const parsed = JSON.parse(cachedValue) as StoredDecryptionSignature;",
+            "      if (",
+            "        parsed.userAddress.toLowerCase() === userAddress.toLowerCase() &&",
+            "        parsed.contractAddresses[0]?.toLowerCase() === contractAddress.toLowerCase() &&",
+            "        isSignatureValid(parsed)",
+            "      ) {",
+            "        return parsed;",
+            "      }",
+            "      storage.removeItem(key);",
+            "    } catch {",
+            "      storage.removeItem(key);",
+            "    }",
+            "  }",
+            "",
+            "  const { publicKey, privateKey } = instance.generateKeypair();",
+            "  const startTimestamp = Math.floor(Date.now() / 1000);",
+            "  const durationDays = 365;",
+            "  const contractAddresses = [contractAddress as `0x${string}`];",
+            "",
+            "  const eip712 = instance.createEIP712(publicKey, contractAddresses, startTimestamp, durationDays);",
+            "",
+            "  const signature = await signer.signTypedData(",
+            "    eip712.domain as ethers.TypedDataDomain,",
+            "    {",
+            "      UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification as ethers.TypedDataField[],",
+            "    },",
+            "    eip712.message",
+            "  );",
+            "",
+            "  const record: StoredDecryptionSignature = {",
+            "    publicKey,",
+            "    privateKey,",
+            "    signature,",
+            "    userAddress,",
+            "    contractAddresses,",
+            "    startTimestamp,",
+            "    durationDays,",
+            "  };",
+            "",
+            "  try {",
+            "    storage.setItem(key, JSON.stringify(record));",
+            "  } catch {",
+            "    // ignore storage failures (private browsing, quota issues)",
+            "  }",
+            "",
+            "  return record;",
+            "}",
+          ].join("\n")}
+        />
+        <p className="text-xs text-muted-foreground">
+          The cast on <code>window</code> keeps TypeScript happy even if other wallet SDKs (like Coinbase) widen
+          <code>window.ethereum</code> to <code>any</code>; no extra global ambient declarations required.
+        </p>
+        <Card className="bg-muted/20 border-card-border">
+          <CardContent className="text-xs text-muted-foreground">
+            Restart <code>npm run dev</code> whenever you edit <code>.env</code>—Vite reads environment variables only at startup, so
+            stale config is a common root cause of proof or connection errors.
+          </CardContent>
+        </Card>
       </section>
 
       <Card className="bg-success/5 border-success/20">
@@ -283,7 +434,7 @@ export {};
           <ul className="list-disc list-inside space-y-1">
             <li>A Bootstrap-powered React shell in its own workspace</li>
             <li>Environment variables pointing at Zama’s Sepolia infrastructure</li>
-            <li>A relayer helper that encrypts inputs and decrypts the jar total</li>
+            <li>A relayer helper and signature cache that encrypt inputs and decrypt the jar total</li>
           </ul>
           <p>
             Step&nbsp;5 adds Wagmi hooks so bakers can connect wallets, drop cookies, and trigger the big reveal.

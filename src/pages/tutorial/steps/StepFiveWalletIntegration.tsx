@@ -8,11 +8,11 @@ const StepFiveWalletIntegration = () => {
       <section className="space-y-4">
         <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
           <Wallet className="h-5 w-5 text-primary" />
-          Install Wagmi and Viem
+          Confirm Wagmi Tooling
         </h3>
         <p className="text-muted-foreground">
-          Wagmi wraps common wallet patterns so you can focus on the FHE pieces. Install it together with Viem (the
-          underlying RPC client).
+          Step&nbsp;4 already pulled in Wagmi, Viem, and the connector packages. If you cloned an older workspace or skipped that install,
+          run the command below before moving on.
         </p>
         <CodeBlock
           title="Terminal"
@@ -24,38 +24,12 @@ const StepFiveWalletIntegration = () => {
       <section className="space-y-4">
         <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
           <Link2 className="h-5 w-5 text-primary" />
-          Wagmi Configuration
+          Review the Wagmi Helper
         </h3>
         <p className="text-muted-foreground">
-          Create a small helper that registers Sepolia and exposes a shared configuration. Save this as
-          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/wagmi.ts</code>. Keeping the setup in one place
-          means you can later swap the chain definition for a Zama-managed RPC without touching the UI.
-        </p>
-        <CodeBlock
-          title="src/lib/wagmi.ts"
-          language="typescript"
-          code={`import { createConfig, http } from "wagmi";
-import { sepolia } from "wagmi/chains";
-import { injected, metaMask } from "wagmi/connectors";
-
-const RPC_URL = import.meta.env.VITE_RPC_URL;
-const sepoliaTransport = RPC_URL ? http(RPC_URL) : http();
-
-export const wagmiConfig = createConfig({
-  chains: [sepolia],
-  connectors: [
-    metaMask({ shimDisconnect: true }),
-    injected({ target: "metaMask" }),
-  ],
-  transports: {
-    [sepolia.id]: sepoliaTransport,
-  },
-});
-`}
-        />
-        <p className="text-sm text-muted-foreground">
-          Target MetaMask explicitly so the injected connector doesn’t bounce users to Coinbase when multiple wallet
-          extensions are installed. The generic injected fallback still allows other extensions to connect manually.
+          You created <code className="bg-code-bg px-1 py-0.5 rounded text-accent">src/lib/wagmi.ts</code> in Step&nbsp;4. If you
+          tweak RPC endpoints or add more connectors later, update that helper and the rest of the app will pick it up
+          automatically.
         </p>
       </section>
 
@@ -72,12 +46,40 @@ export const wagmiConfig = createConfig({
         <CodeBlock
           title="src/hooks/useCookieJar.ts"
           language="typescript"
-          code={`import { useAccount, useConnect, useDisconnect } from "wagmi";
+          code={String.raw`import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ethers } from "ethers";
+import { Contract, ethers } from "ethers";
 import { getCookieJarContract, buildEncryptedCookies, ensureFhevmInstance } from "../lib/fhevm";
+import { loadOrCreateSignature } from "../lib/decryptionSignature";
 
 const COOKIE_TOTAL_QUERY_KEY = ["cookie-total"] as const;
+
+async function decryptJarTotal(contract: Contract) {
+  const fhe = await ensureFhevmInstance();
+  const contractAddress = await contract.getAddress();
+  const encryptedHandle = await contract.encryptedTotal();
+  const handleHex = ethers.hexlify(encryptedHandle);
+  const signer = contract.runner as ethers.Signer;
+
+  const signature = await loadOrCreateSignature(fhe, contractAddress, signer);
+  const decrypted = await fhe.userDecrypt(
+    [{ handle: handleHex, contractAddress }],
+    signature.privateKey,
+    signature.publicKey,
+    signature.signature,
+    signature.contractAddresses,
+    signature.userAddress,
+    signature.startTimestamp,
+    signature.durationDays
+  );
+
+  const total = decrypted[handleHex];
+  if (total === undefined) {
+    throw new Error("Unable to decrypt cookie jar");
+  }
+
+  return Number(total);
+}
 
 export function useCookieJar() {
   const { address, isConnected } = useAccount();
@@ -101,16 +103,22 @@ export function useCookieJar() {
     queryKey: COOKIE_TOTAL_QUERY_KEY,
     enabled: false,
     queryFn: async () => {
+      if (!address || !isConnected) throw new Error("Connect a wallet first");
       const contract = await getCookieJarContract();
-      const encryptedHandle = await contract.encryptedTotal();
-      const handleHex = ethers.hexlify(encryptedHandle);
-      const fhe = await ensureFhevmInstance();
-      const decrypted = await fhe.publicDecrypt([handleHex]);
-      const total = decrypted[handleHex];
-      if (total === undefined) {
-        throw new Error("Unable to decrypt cookie jar");
-      }
-      return Number(total);
+      return decryptJarTotal(contract);
+    },
+  });
+
+  const revealTotal = useMutation({
+    mutationFn: async () => {
+      if (!address || !isConnected) throw new Error("Connect a wallet first");
+      const contract = await getCookieJarContract();
+      const tx = await contract.revealTotal();
+      await tx.wait();
+      return decryptJarTotal(contract);
+    },
+    onSuccess: (value) => {
+      queryClient.setQueryData(COOKIE_TOTAL_QUERY_KEY, value);
     },
   });
 
@@ -124,14 +132,20 @@ export function useCookieJar() {
     disconnect,
     addCookies,
     totalQuery,
+    revealTotal,
   };
 }
 `}
         />
-        <p className="text-sm text-muted-foreground">
-          The hook exposes one mutation (<code>addCookies</code>) and one lazy query (<code>totalQuery</code>). Clearing the cached
-          reveal after every contribution keeps the UI honest: the next “Reveal total” click will fetch a fresh, relayer-decrypted
-          value.
+        <p className="text-sm text-muted-foreground space-y-1">
+          <span className="block">
+            <code>decryptJarTotal</code> centralises the signature handshake and relayer call so reads and reveals share exactly the
+            same logic. The first reveal asks the user for an EIP-712 signature; subsequent decryptions reuse the cached value until it expires.
+          </span>
+          <span className="block">
+            The lazy <code>totalQuery</code> stays disabled by default—call <code>totalQuery.refetch()</code> whenever you want to
+            refresh an already revealed jar without sending another transaction.
+          </span>
         </p>
       </section>
 

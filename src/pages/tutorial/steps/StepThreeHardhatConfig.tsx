@@ -85,7 +85,8 @@ const StepThreeHardhatConfig = () => {
         </h3>
         <p className="text-muted-foreground">
           Replace the placeholder config from Step 1 with the version below. The key change is setting Solidity to 0.8.24 to
-          match the <code>fhevm</code> library.
+          match the <code>fhevm</code> library. Because Step&nbsp;2 swapped the constructor to use Zama’s Sepolia config helper,
+          you’ll redeploy this contract after compiling so the chain version stays in sync with the frontend.
         </p>
         <CodeBlock title="hardhat.config.ts" language="typescript" code={HARDHAT_CONFIG_CODE} />
       </section>

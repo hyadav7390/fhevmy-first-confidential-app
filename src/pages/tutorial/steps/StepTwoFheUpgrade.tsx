@@ -11,13 +11,18 @@ const StepTwoFheUpgrade = () => {
           Install FHEVM Primitives
         </h3>
         <p className="text-muted-foreground">
-          Time to hide the cookie count. The <code className="bg-code-bg px-1 py-0.5 rounded text-accent">fhevm</code> package ships
-          TFHE helpers that mirror the arithmetic from Step&nbsp;1 but operate on encrypted integers.
+          Zama’s newer toolchain lives in <code className="bg-code-bg px-1 py-0.5 rounded text-accent">@fhevm/solidity</code> and
+          <code className="bg-code-bg px-1 py-0.5 rounded text-accent">encrypted-types</code>. These packages expose the
+          <code>FHE</code> helpers and encrypted value types that mirror the plaintext contract from Step&nbsp;1.
         </p>
-        <CodeBlock title="Terminal" language="bash" code={`npm install fhevm@0.6.2`} />
+        <CodeBlock
+          title="Terminal"
+          language="bash"
+          code={`npm install @fhevm/solidity@0.8.0 @zama-fhe/oracle-solidity@0.1.0 encrypted-types@0.0.4`}
+        />
         <p className="text-sm text-muted-foreground">
-          This dependency gives us encrypted numeric types (for example <code>euint32</code>) and math helpers such as
-          <code>TFHE.add</code>. They behave just like their plaintext cousins—you’ll barely notice the swap.
+          The Solidity library ships the Sepolia config used by the relayer SDK, so contract and frontend always share the same
+          ACL/KMS/coprocessor addresses.
         </p>
       </section>
 
@@ -42,30 +47,35 @@ const StepTwoFheUpgrade = () => {
           code={`// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "fhevm/lib/TFHE.sol";
-import { ZamaFHEVMConfig } from "fhevm/config/ZamaFHEVMConfig.sol";
+import { FHE, euint32, externalEuint32 } from "@fhevm/solidity/lib/FHE.sol";
+import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
 
-contract EncryptedCookieJar {
+contract EncryptedCookieJar is SepoliaConfig {
     euint32 private totalCookies;
 
     event CookiesAdded(address indexed baker, bytes32 encryptedAmountHandle);
+    event JarUnlocked(address indexed caller);
 
     constructor() {
-        TFHE.setFHEVM(ZamaFHEVMConfig.getSepoliaConfig());
-
-        totalCookies = TFHE.asEuint32(0);
-        TFHE.allowThis(totalCookies);
+        totalCookies = FHE.asEuint32(0);
+        FHE.allowThis(totalCookies);
     }
 
-    function addCookies(einput encryptedAmount, bytes calldata inputProof) external {
-        euint32 amount = TFHE.asEuint32(encryptedAmount, inputProof);
-        totalCookies = TFHE.add(totalCookies, amount);
-        TFHE.allowThis(totalCookies);
-        emit CookiesAdded(msg.sender, einput.unwrap(encryptedAmount));
+    function addCookies(externalEuint32 encryptedAmount, bytes calldata inputProof) external {
+        euint32 amount = FHE.fromExternal(encryptedAmount, inputProof);
+        totalCookies = FHE.add(totalCookies, amount);
+        FHE.allowThis(totalCookies);
+        FHE.allow(totalCookies, msg.sender);
+        emit CookiesAdded(msg.sender, externalEuint32.unwrap(encryptedAmount));
     }
 
-    function encryptedTotal() external view returns (uint256) {
+    function encryptedTotal() external view returns (bytes32) {
         return euint32.unwrap(totalCookies);
+    }
+
+    function revealTotal() external {
+        totalCookies = FHE.makePubliclyDecryptable(totalCookies);
+        emit JarUnlocked(msg.sender);
     }
 }
 `}
@@ -80,11 +90,8 @@ contract EncryptedCookieJar {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
               <p>
-                <strong>Encrypted cookies:</strong> <code>euint32</code> mirrors the plaintext <code>uint32</code> from Step&nbsp;1. The
-                constructor pulls Zama’s pre-packaged Sepolia configuration via <code>ZamaFHEVMConfig.getSepoliaConfig()</code>, so the
-                ACL, executor, payment, and verifier addresses always match the network you deploy to. We still call
-                <code>TFHE.allowThis</code> after every update so the contract remains authorised to read and modify its own
-                ciphertexts.
+                <strong>Encrypted cookies:</strong> <code>euint32</code> mirrors the plaintext <code>uint32</code> from Step&nbsp;1. Reusing <code>SepoliaConfig</code> keeps the on-chain ACL, executor, payment, and verifier addresses in sync with the frontend defaults.
+                After every update we authorise both the contract (<code>FHE.allowThis</code>) and the caller (<code>FHE.allow</code>) so the relayer can process reveal requests later without running into “Invalid index” errors.
               </p>
               <p>
                 <strong>No plaintext crumbs:</strong> Players submit encrypted handles + proofs. We log the handle for debugging, but
@@ -101,12 +108,12 @@ contract EncryptedCookieJar {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
               <p>
-                The new <code>encryptedTotal()</code> view returns the ciphertext handle (a <code>uint256</code>). The frontend will pass
+                The new <code>encryptedTotal()</code> view returns the ciphertext handle as a <code>bytes32</code>. The frontend will pass
                 that handle to the relayer SDK for public decryption when it’s time to reveal the jar.
               </p>
               <p>
                 Want to verify the jar on-chain before the reveal? Add additional encrypted comparisons using
-                <code>TFHE.gt</code>, <code>TFHE.eq</code>, and friends—they behave just like in the baseline contract.
+                <code>FHE.gt</code>, <code>FHE.eq</code>, and friends—they behave just like in the baseline contract.
               </p>
             </CardContent>
           </Card>
@@ -138,7 +145,7 @@ contract EncryptedCookieJar {
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Encryption:</strong> Each baker encrypts their cookie count client side.</li>
-            <li><strong>Computation:</strong> The contract adds ciphertexts with <code>TFHE.add</code>, keeping intermediate sums secret.</li>
+            <li><strong>Computation:</strong> The contract adds ciphertexts with <code>FHE.add</code>, keeping intermediate sums secret.</li>
             <li><strong>Decryption:</strong> Later we’ll call the relayer to decrypt <code>encryptedTotal()</code> for everyone.</li>
           </ul>
           <p>
