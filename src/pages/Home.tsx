@@ -195,7 +195,7 @@ const Home = () => {
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Node.js 18+ and npm</li>
+                  <li>Node.js 22+ and npm (run <code>nvm use 22</code> before installing dependencies)</li>
                   <li>Hardhat familiarity (compile, deploy, run tests)</li>
                   <li>Browser wallet such as MetaMask</li>
                   <li>Optional: a funded account on Zama Devnet for live testing</li>

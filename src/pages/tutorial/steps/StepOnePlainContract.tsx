@@ -15,6 +15,10 @@ const StepOnePlainContract = () => {
           this step as setting the stage for our “Secret Cookie Jar” dApp: a friendly Hardhat workspace, TypeScript support, and a
           deliberately tiny contract that we can later encrypt without changing the public API.
         </p>
+        <p className="text-sm text-muted-foreground">
+          Use Node.js 22 or newer for the Hardhat toolchain. If you manage Node with nvm, run <code>nvm install 22</code> followed by
+          <code>nvm use 22</code> before continuing.
+        </p>
         <CodeBlock
           title="Terminal"
           language="bash"

@@ -1,52 +1,34 @@
 # Welcome to your ZAMA tutorial
 
-## Project info
+This repository contains the source for the "Hello fhEVM" tutorial. The React site walks you through creating a confidential Cookie Jar dApp step by step while keeping the code and the narrative in sync.
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Prerequisites
+- Node.js 22 or newer (recommended via [`nvm`](https://github.com/nvm-sh/nvm#installing-and-updating))
+- npm 10+ (bundled with Node 22)
+- A browser wallet such as MetaMask for the frontend walkthrough
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# make sure you're on the supported toolchain
+nvm install 22
+nvm use 22
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Run the documentation site locally
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+This starts Vite on http://localhost:5173 with hot module reloading so you can skim, edit, and preview the tutorial side by side.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Additional scripts
+- `npm run build` - generate a production build of the documentation
+- `npm run preview` - run the production build locally for smoke testing
+- `npm run lint` - check TypeScript, hooks, and formatting rules
 
-**Use GitHub Codespaces**
+## Contributing tweaks
+The tutorial favours copy-pastable snippets and actionable callouts. When updating steps, keep the language concise and ensure any commands run cleanly on Node 22. If you introduce new environment variables or scripts, surface them both in the relevant step and here in the README.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
+## Need more context?
+Head to [docs.zama.ai](https://docs.zama.ai) for the full fhEVM documentation or join the [Zama Discord](https://discord.gg/zama) to get help from the community.
